@@ -520,8 +520,25 @@
                 }
 
                 const fullPrompt = `You are a DuckDB SQL(https://duckdb.org/docs/stable/sql/dialect/friendly_sql.html) expert. Your task is to convert natural language questions into SQL queries. You will be given the schemas of the available tables and a question from the user. You must only return the SQL query only, with no additional explanation or text or markdown.\n\nHere are the available tables:\n\n${schemaPrompt}User's question: "${naturalLanguageQuery}"`;
-                const aiResponse = await puter.ai.chat(fullPrompt, {model: 'google/gemini-2.5-pro-preview' });
-                customQueryTextArea.value = aiResponse;
+                const response = await puter.ai.chat(fullPrompt, {model: 'google/gemini-2.5-pro-preview' });
+
+                let responseText;
+                if (typeof response === 'string') {
+                    responseText = response;
+                } else if (response.message && response.message.content) {
+                    if (Array.isArray(response.message.content) && response.message.content[0].text) {
+                        responseText = response.message.content[0].text;
+                    } else {
+                        responseText = response.message.content;
+                    }
+                } else {
+                    responseText = JSON.stringify(response);
+                }
+
+                // Strip markdown code blocks
+                responseText = responseText.replace(/^```(?:sql|json|)?\n/, '').replace(/\n```$/, '').trim();
+
+                customQueryTextArea.value = responseText;
 
             } catch (e) {
                 console.error(e);
